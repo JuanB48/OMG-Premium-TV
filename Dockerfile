@@ -1,31 +1,35 @@
-# Usa un'immagine Node.js come base
 FROM node:16-slim
 
-# Imposta la directory di lavoro
-WORKDIR /app
+# Define build argument for branch
+ARG BRANCH=main
 
-# Installa git, Python e pip (se necessario)
+# Install git, Python and pip
 RUN apt-get update && \
     apt-get install -y git python3 python3-pip && \
     pip3 install requests && \
     rm -rf /var/lib/apt/lists/*
 
-# Copia i file del progetto
-COPY package.json package-lock.json ./
+WORKDIR /app
+
+# Clone the repository and checkout specified branch
+RUN git clone https://github.com/JuanB48/OMG-Premium-TV.git . && \
+    git checkout ${BRANCH}
+
+# Install dependencies
 RUN npm install
 
-# Copia il resto del codice
-COPY . .
-
-# Crea directory per i dati e imposta i permessi
-RUN mkdir -p /app/data && chown -R node:node /app/data
-
-# Crea la directory temp e imposta i permessi (come nel Dockerfile di Hugging Face)
+# Create directories for Python scripts and generated playlists
 RUN mkdir -p /app/temp && \
     chmod 777 /app/temp
+RUN chmod 777 /app
 
-# Esponi la porta 10000 (usata dal server)
-EXPOSE 10000
 
-# Avvia l'add-on
+# Expose the port (Hugging Face uses 7860)
+EXPOSE 7860
+
+# Set essential environment variables for Hugging Face
+ENV PORT=7860
+ENV HOST=0.0.0.0
+
+# Start the application
 CMD ["node", "index.js"]
